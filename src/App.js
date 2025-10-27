@@ -171,10 +171,17 @@ function App() {
     // Wait for Supabase to initialize before checking session
     const initializeAuth = async () => {
       try {
-        // Small delay to ensure Supabase client is ready (fixes race condition)
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Longer delay for production environment (300ms)
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         if (!mounted) return;
+
+        // Check if supabase.auth exists before calling it
+        if (!supabase || !supabase.auth) {
+          console.error('Supabase client not initialized');
+          if (mounted) setSession(null);
+          return;
+        }
 
         const { data: { session }, error } = await supabase.auth.getSession();
 
@@ -192,16 +199,15 @@ function App() {
 
     initializeAuth();
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    // Listen for auth changes with safe optional chaining
+    const authListener = supabase?.auth?.onAuthStateChange((event, session) => {
       if (mounted) setSession(session);
     });
 
     return () => {
       mounted = false;
-      if (subscription && typeof subscription.unsubscribe === 'function') {
-        subscription.unsubscribe();
-      }
+      // Safe cleanup with optional chaining
+      authListener?.data?.subscription?.unsubscribe();
     };
   }, []);
 
