@@ -2,6 +2,7 @@
   "name": "kirana-tracker",
   "version": "0.1.0",
   "private": true,
+  "homepage": ".",
   "dependencies": {
     "@supabase/supabase-js": "^2.76.1",
     "@testing-library/dom": "^10.4.1",
