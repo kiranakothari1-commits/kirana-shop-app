@@ -166,9 +166,33 @@ function App() {
 
   // ==================== AUTH EFFECTS ====================
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
-    return () => subscription.unsubscribe();
+    // Initialize auth with error handling for production
+    const initAuth = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Auth initialization error:', error);
+          setSession(null);
+        } else {
+          setSession(data?.session || null);
+        }
+      } catch (err) {
+        console.error('Failed to initialize auth:', err);
+        setSession(null);
+      }
+    };
+
+    initAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => {
+      if (subscription?.unsubscribe) {
+        subscription.unsubscribe();
+      }
+    };
   }, []);
 
   // ==================== DATA LOADING EFFECTS ====================
