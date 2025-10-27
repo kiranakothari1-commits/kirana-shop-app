@@ -166,30 +166,22 @@ function App() {
 
   // ==================== AUTH EFFECTS ====================
   useEffect(() => {
-    // Initialize auth with error handling for production
-    const initAuth = async () => {
-      try {
-        const { data, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('Auth initialization error:', error);
-          setSession(null);
-        } else {
-          setSession(data?.session || null);
-        }
-      } catch (err) {
-        console.error('Failed to initialize auth:', err);
-        setSession(null);
-      }
-    };
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    }).catch(err => {
+      console.error('Session error:', err);
+      setSession(null);
+    });
 
-    initAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
     });
 
+    // Cleanup
     return () => {
-      if (subscription?.unsubscribe) {
+      if (subscription && typeof subscription.unsubscribe === 'function') {
         subscription.unsubscribe();
       }
     };
