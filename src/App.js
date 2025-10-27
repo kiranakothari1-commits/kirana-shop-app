@@ -166,21 +166,39 @@ function App() {
 
   // ==================== AUTH EFFECTS ====================
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-    }).catch(err => {
-      console.error('Session error:', err);
-      setSession(null);
-    });
+    let mounted = true;
+
+    // Wait for Supabase to initialize before checking session
+    const initializeAuth = async () => {
+      try {
+        // Small delay to ensure Supabase client is ready (fixes race condition)
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        if (!mounted) return;
+
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error('Session error:', error);
+          if (mounted) setSession(null);
+        } else {
+          if (mounted) setSession(session);
+        }
+      } catch (err) {
+        console.error('Auth initialization error:', err);
+        if (mounted) setSession(null);
+      }
+    };
+
+    initializeAuth();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
+      if (mounted) setSession(session);
     });
 
-    // Cleanup
     return () => {
+      mounted = false;
       if (subscription && typeof subscription.unsubscribe === 'function') {
         subscription.unsubscribe();
       }
