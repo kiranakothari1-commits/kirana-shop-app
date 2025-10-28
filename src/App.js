@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import supabase from "./supabaseClient";
+// import supabase from "./supabaseClient"; // TEMPORARILY DISABLED FOR TESTING
 import "./App.css";
 
 // ==================== CONSTANTS ====================
@@ -81,9 +81,10 @@ const getDateRangeUtil = (rangeType, customStart, customEnd) => {
 // ==================== MAIN APP COMPONENT ====================
 function App() {
   // Auth state
-  const [session, setSession] = useState(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  // TEMPORARY: Force logged-in state for testing (NO AUTH)
+  const [session, setSession] = useState({ user: { id: "test-user", email: "test@test.com" } });
+  // const [email, setEmail] = useState(""); // DISABLED
+  // const [password, setPassword] = useState(""); // DISABLED
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -165,23 +166,17 @@ function App() {
   const [loadingVersions, setLoadingVersions] = useState(false);
 
   // ==================== AUTH EFFECTS ====================
+  /* TEMPORARILY DISABLED - NO AUTH TESTING
   useEffect(() => {
     let mounted = true;
 
     // Wait for Supabase to initialize before checking session
     const initializeAuth = async () => {
       try {
-        // Longer delay for production environment (300ms)
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Small delay to ensure Supabase client is ready (fixes race condition)
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         if (!mounted) return;
-
-        // Check if supabase.auth exists before calling it
-        if (!supabase || !supabase.auth) {
-          console.error('Supabase client not initialized');
-          if (mounted) setSession(null);
-          return;
-        }
 
         const { data: { session }, error } = await supabase.auth.getSession();
 
@@ -199,19 +194,20 @@ function App() {
 
     initializeAuth();
 
-    // Listen for auth changes with safe optional chaining
-    const authListener = supabase?.auth?.onAuthStateChange((event, session) => {
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (mounted) setSession(session);
     });
 
     return () => {
       mounted = false;
-      // Safe cleanup with optional chaining
-      authListener?.data?.subscription?.unsubscribe();
+      if (subscription && typeof subscription.unsubscribe === 'function') {
+        subscription.unsubscribe();
+      }
     };
   }, []);
 
-  // ==================== DATA LOADING EFFECTS ====================
+    */// ==================== DATA LOADING EFFECTS ====================
   useEffect(() => {
     if (!session) return;
     loadProducts();
